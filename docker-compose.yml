@@ -1,4 +1,5 @@
 services:
+  # PX4 + Gazebo + MicroXRCEAgent
   px4-gazebo:
     build:
       context: .
@@ -11,9 +12,19 @@ services:
       - QT_X11_NO_MITSHM=1
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # Optional: Persist logs and data
+      - ./px4_logs:/root/log:rw
     command: /entrypoint.sh
     restart: unless-stopped
+    # Add health check to verify PX4 is running
+    healthcheck:
+      test: ["CMD", "pgrep", "px4"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
+  # ROS 2 Bridge
   ros2-bridge:
     build:
       context: .
@@ -22,8 +33,33 @@ services:
     container_name: ros2-bridge
     network_mode: host
     depends_on:
-      - px4-gazebo
+      px4-gazebo:
+        condition: service_healthy
     environment:
       - ROS_DOMAIN_ID=0
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+    volumes:
+      # Mount your RL code for development
+      - ./src:/root/colcon_ws/src/agere_rl:rw
     command: /entrypoint.sh bash
     restart: unless-stopped
+    # Keep it running even if it exits
+    stdin_open: true
+    tty: true
+
+  # Optional: QGroundControl for visual monitoring
+  qgroundcontrol:
+    image: qgroundcontrol/qgroundcontrol:latest
+    container_name: qgroundcontrol
+    network_mode: host
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    command: /usr/bin/qgroundcontrol
+    restart: unless-stopped
+    # Uncomment if you want it to start automatically
+    # profiles: ["full"]
+    # Comment out if you don't want QGC
+    profiles: ["full"]

@@ -1,0 +1,12 @@
+# Create the optimized entrypoint script pointing to the correct workspace
+RUN echo '#!/bin/bash\n\
+source /opt/ros/humble/setup.bash\n\
+if [ -f /root/px4_ros_com/install/setup.bash ]; then\n\
+    source /root/px4_ros_com/install/setup.bash\n\
+fi\n\
+echo "=========================================="\n\
+echo "ROS 2 Bridge Ready (Pre-compiled Active!)"\n\
+echo "=========================================="\n\
+\n\
+exec "$@"' > /entrypoint.sh \
+    && chmod +x /entrypoint.sh
