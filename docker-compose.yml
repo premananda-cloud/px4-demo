@@ -1,0 +1,29 @@
+services:
+  px4-gazebo:
+    build:
+      context: .
+      dockerfile: Dockerfile.px4
+    image: px4-demo:latest
+    container_name: px4-demo
+    network_mode: host
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    command: /entrypoint.sh
+    restart: unless-stopped
+
+  ros2-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile.ros2
+    image: ros2-bridge:latest
+    container_name: ros2-bridge
+    network_mode: host
+    depends_on:
+      - px4-gazebo
+    environment:
+      - ROS_DOMAIN_ID=0
+    command: /entrypoint.sh bash
+    restart: unless-stopped

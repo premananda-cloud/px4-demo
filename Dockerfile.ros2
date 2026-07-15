@@ -1,0 +1,49 @@
+FROM ros:humble-ros-base
+
+# Install build tools
+RUN apt-get update && apt-get install -y \
+    git \
+    python3-colcon-common-extensions \
+    python3-rosdep \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clone both repositories (px4_msgs is needed first)
+WORKDIR /root
+RUN git clone https://github.com/PX4/px4_msgs.git --depth 1
+RUN git clone https://github.com/PX4/px4_ros_com.git --depth 1
+
+# Build px4_msgs first (this fixes the dependency issue)
+RUN bash -c "source /opt/ros/humble/setup.bash \
+    && cd /root/px4_msgs \
+    && mkdir -p build \
+    && cd build \
+    && cmake .. \
+    && make \
+    && make install"
+
+# Build the bridge
+RUN bash -c "source /opt/ros/humble/setup.bash \
+    && cd /root/px4_ros_com \
+    && rosdep update \
+    && rosdep install --from-paths src --ignore-src -y \
+    && colcon build"
+
+# Create entrypoint script
+RUN echo '#!/bin/bash\n\
+source /opt/ros/humble/setup.bash\n\
+source /root/px4_ros_com/install/setup.bash\n\
+echo "=========================================="\n\
+echo "ROS 2 Bridge Ready!"\n\
+echo "=========================================="\n\
+echo "Available PX4 topics:"\n\
+ros2 topic list 2>/dev/null | grep "/fmu" || echo "  (waiting for PX4...)"\n\
+echo "=========================================="\n\
+echo ""\n\
+echo "To test: ros2 topic echo /fmu/out/vehicle_attitude"\n\
+echo "To send commands: ros2 run px4_ros_com offboard_control"\n\
+echo ""\n\
+exec "$@"' > /entrypoint.sh \
+    && chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["bash"]
