@@ -1,28 +1,35 @@
-FROM ros:humble-ros-base
+FROM px4io/px4-sitl-gazebo:latest
 
-# Install pre-built PX4 ROS 2 packages
+USER root
+
+# Install MicroXRCEAgent
 RUN apt-get update && apt-get install -y \
-    ros-humble-px4-msgs \
-    ros-humble-px4-ros-com \
-    ros-humble-ros2bag \
-    ros-humble-rosbag2-storage-mcap \
+    git \
+    cmake \
+    build-essential \
+    libasio-dev \
+    libtinyxml2-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Build and install MicroXRCEAgent
+RUN git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git /tmp/agent \
+    && cd /tmp/agent \
+    && mkdir build && cd build \
+    && cmake -DTHIRDPARTY=ON .. \
+    && make -j$(nproc) \
+    && make install \
+    && ldconfig \
+    && rm -rf /tmp/agent
 
 # Create entrypoint script
 RUN echo '#!/bin/bash\n\
-source /opt/ros/humble/setup.bash\n\
-echo "=========================================="\n\
-echo "ROS 2 Bridge Ready (Pre-built)"\n\
-echo "=========================================="\n\
-echo "Available PX4 topics (when PX4 is running):"\n\
-ros2 topic list 2>/dev/null | grep "/fmu" || echo "  (waiting for PX4...)"\n\
-echo "=========================================="\n\
-echo ""\n\
-echo "To test: ros2 topic echo /fmu/out/vehicle_attitude"\n\
-echo "To send commands: ros2 run px4_ros_com offboard_control"\n\
-echo ""\n\
-exec "$@"' > /entrypoint.sh \
+# Start MicroXRCEAgent\n\
+MicroXRCEAgent udp4 -p 8888 &\n\
+sleep 2\n\
+\n\
+# Start PX4\n\
+cd /opt/px4-gazebo/bin\n\
+exec ./px4\n' > /entrypoint.sh \
     && chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["bash"]
