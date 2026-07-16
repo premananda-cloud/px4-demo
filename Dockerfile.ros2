@@ -30,18 +30,30 @@ RUN apt-get update \
     && colcon build --symlink-install \
     && rm -rf /var/lib/apt/lists/*
 
-# Create the optimized entrypoint script pointing to the correct workspace
+# Create the entrypoint script: source the workspace, build agere_rl (it is
+# bind-mounted at runtime so it did not exist during the image's colcon
+# build above), then hand off to whatever command docker-compose passes in.
 RUN echo '#!/bin/bash\n\
 source /opt/ros/humble/setup.bash\n\
 if [ -f /root/colcon_ws/install/setup.bash ]; then\n\
     source /root/colcon_ws/install/setup.bash\n\
 fi\n\
+\n\
+if [ -d /root/colcon_ws/src/agere_rl ]; then\n\
+    echo "Building agere_rl..."\n\
+    cd /root/colcon_ws\n\
+    colcon build --symlink-install --packages-select agere_rl\n\
+    source /root/colcon_ws/install/setup.bash\n\
+fi\n\
+\n\
 echo "=========================================="\n\
 echo "ROS 2 Bridge Ready (Pre-compiled Active!)"\n\
 echo "=========================================="\n\
 echo "Available PX4 topics:"\n\
 ros2 topic list 2>/dev/null | grep "/fmu" || echo "  (waiting for PX4...)"\n\
-echo "=========================================="\n' > /entrypoint.sh \
+echo "=========================================="\n\
+\n\
+exec "$@"\n' > /entrypoint.sh \
     && chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

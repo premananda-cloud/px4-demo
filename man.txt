@@ -1,5 +1,0 @@
-docker run --rm -it --network=host \
-    -e DISPLAY=$DISPLAY \
-    -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
-    px4-demo:latest
-docker run --rm -it --network=host ros2-bridge:latest
