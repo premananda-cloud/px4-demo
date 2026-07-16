@@ -6,16 +6,16 @@ simulated PX4 drone: **PX4 SITL + Gazebo** talks to **ROS 2 Humble** over
 publishes offboard setpoints. This is the seam you plug a trained policy into.
 
 ```
-┌─────────────────────────────┐        UDP 8888        ┌──────────────────────────────┐
-│        px4-gazebo           │ ◄──────────────────────► │        ros2-bridge          │
-│  PX4 SITL + Gazebo sim       │   uXRCE-DDS / /fmu/*     │  ROS 2 Humble + agere_rl     │
-│  + MicroXRCEAgent            │                          │  (your RL / control code)    │
+┌─────────────────────────────┐        UDP 8888          ┌──────────────────────────────┐
+│        px4-gazebo           │ ◄──────────────────────► │        ros2-bridge           │
+│  PX4 SITL + Gazebo sim      │   uXRCE-DDS / /fmu/*     │  ROS 2 Humble + agere_rl     │
+│  + MicroXRCEAgent           │                          │  (your RL / control code)    │
 └─────────────────────────────┘                          └──────────────────────────────┘
               ▲
               │ optional
               ▼
 ┌─────────────────────────────┐
-│      qgroundcontrol          │  visual monitoring / manual override
+│      qgroundcontrol         │  visual monitoring / manual override
 └─────────────────────────────┘
 ```
 
