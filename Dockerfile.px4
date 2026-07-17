@@ -3,6 +3,12 @@ FROM px4io/px4-sitl-gazebo:latest
 
 USER root
 
+# OpenGL/EGL client libraries so Gazebo can talk to the NVIDIA driver
+# that Docker mounts in at runtime (via --gpus / deploy.resources.reservations)
+RUN apt-get update && apt-get install -y \
+    libglvnd0 libgl1 libglx0 libegl1 libgles2 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install MicroXRCEAgent
 RUN apt-get update && apt-get install -y \
     git \
