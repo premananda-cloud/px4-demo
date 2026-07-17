@@ -33,7 +33,10 @@ RUN apt-get update \
 # Create the entrypoint script: source the workspace, build agere_rl (it is
 # bind-mounted at runtime so it did not exist during the image's colcon
 # build above), then hand off to whatever command docker-compose passes in.
-RUN echo '#!/bin/bash\n\
+# NOTE: uses `echo -e` (not plain `echo`) because SHELL is bash here, and
+# bash's builtin echo does not expand \n into real newlines by default -
+# without -e this whole block collapses onto one line and breaks the shebang.
+RUN echo -e '#!/bin/bash\n\
 source /opt/ros/humble/setup.bash\n\
 if [ -f /root/colcon_ws/install/setup.bash ]; then\n\
     source /root/colcon_ws/install/setup.bash\n\
